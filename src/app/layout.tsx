@@ -30,6 +30,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           </nav>
         </header>
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
+        <footer className="mx-auto w-full max-w-6xl px-4 py-6 text-xs text-muted">
+          <Link href="/privacy" className="hover:text-foreground">
+            隱私權政策
+          </Link>
+        </footer>
       </body>
     </html>
   );
