@@ -19,8 +19,18 @@
 3. Dashboard → Authentication → URL Configuration
    - Site URL:正式網址(例如 `https://xxx.vercel.app`)
    - Redirect URLs:加入 `http://localhost:3000/auth/callback` 與 `https://xxx.vercel.app/auth/callback`
-4. 複製 `.env.example` 為 `.env.local`,填入 Project Settings → API 的 URL 與 publishable key
-5. `npm install && npm run dev`
+4. 設定 Google 登入(見下方)
+5. 複製 `.env.example` 為 `.env.local`,填入 Project Settings → API 的 URL 與 publishable key
+6. `npm install && npm run dev`
+
+## 設定 Google 登入
+
+1. [Google Cloud Console](https://console.cloud.google.com) 建立專案 → Google Auth Platform
+2. Branding 填應用程式名稱與 Email;Audience 選 External,並按 Publish app 讓所有人都能登入
+3. Clients → Create client → Web application
+   - Authorized JavaScript origins:`https://xxx.vercel.app`、`http://localhost:3000`
+   - Authorized redirect URIs:`https://<Supabase 專案 ID>.supabase.co/auth/v1/callback`
+4. 把 Client ID 與 Client secret 填到 Supabase → Authentication → Sign In / Providers → Google 並啟用
 
 ## 部署到 Vercel
 

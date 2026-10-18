@@ -18,7 +18,7 @@ export default function AuthCallbackPage() {
 
   return (
     <p className="py-10 text-center text-muted">
-      {failed ? "登入失敗：連結可能已過期，或不是在申請登入的同一個瀏覽器打開。請重新登入。" : "登入中…"}
+      {failed ? "登入失敗，請重新登入。" : "登入中…"}
     </p>
   );
 }

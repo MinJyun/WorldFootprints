@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getBrowserClient } from "@/lib/supabase";
 
@@ -10,6 +10,16 @@ export default function OnboardingPage() {
   const [displayName, setDisplayName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // 顯示名稱預設帶入 Google 帳號的名字
+  useEffect(() => {
+    getBrowserClient()
+      .auth.getSession()
+      .then(({ data }) => {
+        const name = data.session?.user.user_metadata.full_name;
+        if (typeof name === "string") setDisplayName((current) => current || name.slice(0, 40));
+      });
+  }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
