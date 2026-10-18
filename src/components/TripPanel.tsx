@@ -239,6 +239,9 @@ export function TripEditor({
     setBusy(true);
     setError(null);
     try {
+      // 沒有登入狀態的請求會被 RLS 擋下,先給看得懂的訊息
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.user.id !== ownerId) throw new Error("登入已失效，請重新整理頁面並重新登入");
       await task();
     } catch (e) {
       // Supabase 回傳的錯誤是帶 message 的一般物件,不是 Error

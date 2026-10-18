@@ -10,7 +10,7 @@ export default function Home() {
           把去過的地方<span className="text-accent">點亮</span>
         </h1>
         <p className="text-muted">
-          在世界地圖上標記你的旅行足跡，日本可以細到都道府縣。
+          在世界地圖上標記你的旅行足跡，日本可以細到都道府縣、美國細到州。
           <br />
           記下日期、筆記和照片，和朋友互相看看彼此去過哪裡。
         </p>

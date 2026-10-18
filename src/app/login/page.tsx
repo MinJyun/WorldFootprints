@@ -1,12 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { getBrowserClient } from "@/lib/supabase";
+import { homePathForCurrentUser } from "@/lib/auth";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent">("idle");
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
+  // 已經登入就直接回自己的地圖
+  useEffect(() => {
+    homePathForCurrentUser().then((path) => path && router.replace(path));
+  }, [router]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();

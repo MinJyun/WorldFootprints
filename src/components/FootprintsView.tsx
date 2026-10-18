@@ -44,10 +44,12 @@ export function FootprintsView({ profile, trips: initialTrips, photos: initialPh
   const [panel, setPanel] = useState<Panel>({ mode: "list" });
   const [isOwner, setIsOwner] = useState(false);
 
+  // 跟著登入狀態更新;在其他分頁登出時這裡也會收起編輯功能
   useEffect(() => {
-    getBrowserClient()
-      .auth.getSession()
-      .then(({ data }) => setIsOwner(data.session?.user.id === profile.id));
+    const { data } = getBrowserClient().auth.onAuthStateChange((_event, session) => {
+      setIsOwner(session?.user.id === profile.id);
+    });
+    return () => data.subscription.unsubscribe();
   }, [profile.id]);
 
   const stats = useMemo(() => computeStats(trips), [trips]);

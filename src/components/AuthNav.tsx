@@ -17,6 +17,14 @@ export function AuthNav() {
     homePathForCurrentUser().then(setHome);
   }, [pathname]);
 
+  // 在其他分頁登入或登出時同步
+  useEffect(() => {
+    const { data } = getBrowserClient().auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT") homePathForCurrentUser().then(setHome);
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
+
   if (home === undefined) return null;
   if (home === null) {
     return (
