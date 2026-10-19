@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { FootprintsView } from "@/components/FootprintsView";
-import { getFootprints } from "@/lib/data";
+import { UserFootprints } from "@/components/UserFootprints";
+import { getProfile } from "@/lib/data";
 
 export default function UserPage({ params }: PageProps<"/u/[username]">) {
   return (
@@ -13,7 +13,7 @@ export default function UserPage({ params }: PageProps<"/u/[username]">) {
 
 async function Footprints({ params }: { params: PageProps<"/u/[username]">["params"] }) {
   const { username } = await params;
-  const data = await getFootprints(username);
-  if (!data) notFound();
-  return <FootprintsView profile={data.profile} trips={data.trips} photos={data.photos} />;
+  const profile = await getProfile(username);
+  if (!profile) notFound();
+  return <UserFootprints profile={profile} />;
 }

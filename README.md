@@ -15,7 +15,7 @@
 ## 第一次設定
 
 1. 到 [supabase.com](https://supabase.com) 建立專案
-2. Dashboard → SQL Editor,貼上 `supabase/migrations/0001_init.sql` 全文執行
+2. Dashboard → SQL Editor,依序貼上 `supabase/migrations/` 下的每個檔案(0001、0002…)全文執行
 3. Dashboard → Authentication → URL Configuration
    - Site URL:正式網址(例如 `https://xxx.vercel.app`)
    - Redirect URLs:加入 `http://localhost:3000/auth/callback` 與 `https://xxx.vercel.app/auth/callback`

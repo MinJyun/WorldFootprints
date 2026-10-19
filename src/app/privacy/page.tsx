@@ -6,7 +6,7 @@ export default function PrivacyPage() {
   return (
     <article className="mx-auto max-w-2xl space-y-6 py-6 text-sm leading-relaxed">
       <h1 className="text-2xl font-bold">隱私權政策</h1>
-      <p className="text-muted">最後更新：2026-10-18</p>
+      <p className="text-muted">最後更新：2026-10-19</p>
 
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">我們收集哪些資料</h2>
@@ -19,7 +19,7 @@ export default function PrivacyPage() {
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">哪些資料是公開的</h2>
         <p>
-          你的帳號名稱、顯示名稱、旅程紀錄與照片會顯示在你的個人頁面上，任何人都可以瀏覽。Email
+          你的帳號名稱與顯示名稱是公開的，讓朋友可以找到你並申請追蹤。旅程紀錄與照片只有你和你同意的追蹤者看得到。Email
           不會公開顯示。
         </p>
       </section>

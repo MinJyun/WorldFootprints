@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { GeoMap } from "./GeoMap";
 import { PlaceDetail, TripDetail, TripEditor, TripList, type TripOrder } from "./TripPanel";
+import type { FriendTrip } from "./UserFootprints";
 import { getBrowserClient } from "@/lib/supabase";
 import { DRILLDOWN_MAPS, GLOBE_MAP, WORLD_MAP } from "@/lib/maps";
 import {
@@ -34,9 +35,9 @@ const COUNTRY_OPTIONS = ALL_COUNTRY_CODES.map((code) => ({ code, name: countryNa
 
 const NO_HIGHLIGHT: ReadonlySet<string> = new Set();
 
-type Props = { profile: Profile; trips: Trip[]; photos: Photo[] };
+type Props = { profile: Profile; trips: Trip[]; photos: Photo[]; friendTrips: FriendTrip[] };
 
-export function FootprintsView({ profile, trips: initialTrips, photos: initialPhotos }: Props) {
+export function FootprintsView({ profile, trips: initialTrips, photos: initialPhotos, friendTrips }: Props) {
   const [trips, setTrips] = useState(() => sortTrips(initialTrips));
   const [photos, setPhotos] = useState(initialPhotos);
   const [view, setView] = useState("world"); // "world" 或 DRILLDOWN_MAPS 的國碼
@@ -88,8 +89,15 @@ export function FootprintsView({ profile, trips: initialTrips, photos: initialPh
   const ordered = useMemo(() => sortTrips(trips, newestFirst), [trips, newestFirst]);
   const order = { newestFirst, onToggle: () => setNewestFirst((v) => !v) };
 
-  const tripsAt = (key: string) =>
-    ordered.filter((t) => t.places.some((p) => p.key === key || splitPlaceKey(p.key)[0] === key));
+  const isAt = (key: string) => (t: Trip) =>
+    t.places.some((p) => p.key === key || splitPlaceKey(p.key)[0] === key);
+  const tripsAt = (key: string) => ordered.filter(isAt(key));
+  const friendTripsAt = (key: string) => {
+    const at = isAt(key);
+    return sortTrips(friendTrips.map((f) => f.trip).filter(at), newestFirst).map(
+      (trip) => friendTrips.find((f) => f.trip === trip)!,
+    );
+  };
 
   const visitedCountries = [...stats.entries()].filter(([key, s]) => !key.includes("-") && hasVisited(s)).length;
 
@@ -170,6 +178,7 @@ export function FootprintsView({ profile, trips: initialTrips, photos: initialPh
           order={order}
           photos={photos}
           tripsAt={tripsAt}
+          friendTripsAt={friendTripsAt}
           stats={stats}
           ownerId={isOwner ? profile.id : undefined}
           onSaved={(trip) => {
@@ -194,6 +203,7 @@ function PanelView({
   order,
   photos,
   tripsAt,
+  friendTripsAt,
   stats,
   ownerId,
   onSaved,
@@ -206,6 +216,7 @@ function PanelView({
   order: TripOrder;
   photos: Photo[];
   tripsAt: (key: string) => Trip[];
+  friendTripsAt: (key: string) => FriendTrip[];
   stats: ReturnType<typeof computeStats>;
   ownerId?: string;
   onSaved: (trip: Trip) => void;
@@ -226,6 +237,7 @@ function PanelView({
           placeKey={panel.key}
           stat={stats.get(panel.key)}
           trips={tripsAt(panel.key)}
+          friendTrips={friendTripsAt(panel.key)}
           order={order}
           onOpen={open}
           onBack={back}

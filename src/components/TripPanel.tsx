@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { getBrowserClient, photoUrl } from "@/lib/supabase";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { getBrowserClient } from "@/lib/supabase";
 import { resizeImage } from "@/lib/photos";
 import {
   TRIP_COLUMNS,
@@ -19,6 +20,7 @@ import {
   type TripPlace,
   type TripRow,
 } from "@/lib/places";
+import type { FriendTrip } from "./UserFootprints";
 
 const KIND_LABEL = Object.fromEntries(TRIP_KINDS.map((k) => [k.value, k.label])) as Record<TripKind, string>;
 
@@ -107,6 +109,7 @@ export function PlaceDetail({
   placeKey,
   stat,
   trips,
+  friendTrips,
   order,
   onOpen,
   onBack,
@@ -115,6 +118,7 @@ export function PlaceDetail({
   placeKey: string;
   stat?: PlaceStat;
   trips: Trip[];
+  friendTrips: FriendTrip[];
   order: TripOrder;
   onOpen: (id: string) => void;
   onBack: () => void;
@@ -137,6 +141,27 @@ export function PlaceDetail({
             <TripItem key={t.id} trip={t} onOpen={onOpen} />
           ))}
         </ul>
+      )}
+      {friendTrips.length > 0 && (
+        <div className="space-y-2 border-t border-border pt-4">
+          <h3 className="font-semibold">追蹤的人也去過</h3>
+          <ul className="space-y-2">
+            {friendTrips.map(({ owner, trip }) => (
+              <li key={trip.id}>
+                <Link
+                  href={`/u/${owner.username}`}
+                  className="block rounded-lg border border-border px-3 py-2 hover:border-accent"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate font-medium">{tripTitle(trip)}</span>
+                    <span className="shrink-0 text-xs text-accent">{owner.display_name}</span>
+                  </div>
+                  <div className="text-xs text-muted">{formatDates(trip)}</div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </Card>
   );
@@ -444,16 +469,46 @@ export function TripEditor({
   );
 }
 
+// 照片 bucket 是私有的,要換成有時效的簽名網址才能顯示
+const SIGNED_URL_TTL = 60 * 60 * 24;
+const signedUrls = new Map<string, string>();
+
+function useSignedUrls(paths: string[]): (path: string) => string | undefined {
+  const [, setVersion] = useState(0);
+  const key = paths.join("\n");
+  useEffect(() => {
+    const missing = key ? key.split("\n").filter((p) => !signedUrls.has(p)) : [];
+    if (!missing.length) return;
+    let cancelled = false;
+    getBrowserClient()
+      .storage.from("photos")
+      .createSignedUrls(missing, SIGNED_URL_TTL)
+      .then(({ data }) => {
+        for (const item of data ?? []) if (item.path && item.signedUrl) signedUrls.set(item.path, item.signedUrl);
+        if (!cancelled) setVersion((v) => v + 1);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [key]);
+  return (path) => signedUrls.get(path);
+}
+
 function PhotoGrid({ photos, onRemove }: { photos: Photo[]; onRemove?: (photo: Photo) => void }) {
+  const urlFor = useSignedUrls(photos.map((p) => p.path));
   if (!photos.length) return null;
   return (
     <div className="grid grid-cols-3 gap-2">
       {photos.map((photo) => (
         <div key={photo.id} className="relative aspect-square overflow-hidden rounded-md">
-          <a href={photoUrl(photo.path)} target="_blank" rel="noreferrer">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={photoUrl(photo.path)} alt="" loading="lazy" className="h-full w-full object-cover" />
-          </a>
+          {urlFor(photo.path) ? (
+            <a href={urlFor(photo.path)} target="_blank" rel="noreferrer">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={urlFor(photo.path)} alt="" loading="lazy" className="h-full w-full object-cover" />
+            </a>
+          ) : (
+            <div className="h-full w-full animate-pulse bg-border" />
+          )}
           {onRemove && (
             <button
               onClick={() => onRemove(photo)}
