@@ -73,25 +73,32 @@ export function splitPlaceKey(key: string): [country: string, region: string] {
   return [country, region];
 }
 
-// ---- 地圖顏色:旅遊次數越多越亮,生活過用青色,只有路過最暗 ----
+// ---- 地圖顏色:旅遊次數越多越亮;生活過用青色系,同樣依旅遊次數變亮;只有路過最暗 ----
 
 export type PlaceStat = { trips: number; transits: number; lived: boolean };
 
-export const LEGEND: { label: string; color: string }[] = [
-  { label: "生活過", color: "#5ee6d8" },
-  { label: "4 次以上", color: "#ffe08a" },
-  { label: "2–3 次", color: "#f5b335" },
-  { label: "1 次", color: "#cf7d1c" },
-  { label: "路過", color: "#6e4618" },
+// 依旅遊次數分級:0 次、1 次、2–3 次、4 次以上
+const TRIP_SHADES = [undefined, "#cf7d1c", "#f5b335", "#ffe08a"] as const;
+const LIVED_SHADES = ["#2a8f87", "#3fb8ad", "#5ee6d8", "#b2f7f0"] as const;
+const TRANSIT_COLOR = "#6e4618";
+
+function tier(trips: number): 0 | 1 | 2 | 3 {
+  return trips >= 4 ? 3 : trips >= 2 ? 2 : trips === 1 ? 1 : 0;
+}
+
+// colors 有多個時,圖例顯示為由暗到亮的漸層
+export const LEGEND: { label: string; colors: readonly string[] }[] = [
+  { label: "生活過", colors: LIVED_SHADES },
+  { label: "4 次以上", colors: [TRIP_SHADES[3]] },
+  { label: "2–3 次", colors: [TRIP_SHADES[2]] },
+  { label: "1 次", colors: [TRIP_SHADES[1]] },
+  { label: "路過", colors: [TRANSIT_COLOR] },
 ];
 
 export function statColor(stat: PlaceStat | undefined): string | undefined {
   if (!stat) return undefined;
-  if (stat.lived) return LEGEND[0].color;
-  if (stat.trips >= 4) return LEGEND[1].color;
-  if (stat.trips >= 2) return LEGEND[2].color;
-  if (stat.trips === 1) return LEGEND[3].color;
-  return stat.transits ? LEGEND[4].color : undefined;
+  if (stat.lived) return LIVED_SHADES[tier(stat.trips)];
+  return TRIP_SHADES[tier(stat.trips)] ?? (stat.transits ? TRANSIT_COLOR : undefined);
 }
 
 export function statLabel(stat: PlaceStat | undefined): string {

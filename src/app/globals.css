@@ -35,3 +35,24 @@ body {
     transform: translateY(12px);
   }
 }
+
+/* 日期選擇器(react-day-picker)配合深色主題 */
+.rdp-root.date-range {
+  --rdp-accent-color: var(--accent);
+  --rdp-accent-background-color: color-mix(in srgb, var(--accent) 22%, transparent);
+  --rdp-range_middle-color: var(--foreground);
+  --rdp-range_start-color: #000;
+  --rdp-range_end-color: #000;
+  --rdp-day-height: 38px;
+  --rdp-day-width: 38px;
+  --rdp-day_button-height: 36px;
+  --rdp-day_button-width: 36px;
+  --rdp-today-color: var(--accent);
+  margin: 0 auto;
+  width: fit-content;
+  font-size: 0.875rem;
+}
+.rdp-root.date-range select {
+  background: var(--panel);
+  color: var(--foreground);
+}

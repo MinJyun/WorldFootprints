@@ -22,6 +22,7 @@ import {
 } from "@/lib/places";
 import type { FriendTrip } from "./UserFootprints";
 import { toast } from "./Toast";
+import { DateRangeField } from "./DateRangeField";
 
 const KIND_LABEL = Object.fromEntries(TRIP_KINDS.map((k) => [k.value, k.label])) as Record<TripKind, string>;
 
@@ -416,15 +417,17 @@ export function TripEditor({
         <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={100} placeholder="例如：2024 關西賞楓" className={inputClass} />
       </label>
 
-      <div className="grid grid-cols-2 gap-2">
-        <label className="block">
-          <span className="text-muted">開始</span>
-          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={inputClass} />
-        </label>
-        <label className="block">
-          <span className="text-muted">結束{kind === "lived" ? "（空白＝至今）" : ""}</span>
-          <input type="date" value={endDate} min={startDate || undefined} onChange={(e) => setEndDate(e.target.value)} className={inputClass} />
-        </label>
+      <div>
+        <span className="text-muted">日期{kind === "lived" ? "（還住在那裡就選「至今」）" : ""}</span>
+        <DateRangeField
+          start={startDate}
+          end={endDate}
+          openEnded={kind === "lived"}
+          onChange={(start, end) => {
+            setStartDate(start);
+            setEndDate(end);
+          }}
+        />
       </div>
 
       <label className="block">

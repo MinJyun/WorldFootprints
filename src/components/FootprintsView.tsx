@@ -145,7 +145,11 @@ export function FootprintsView({ profile, trips: initialTrips, photos: initialPh
         <div className="ml-auto flex flex-wrap gap-3">
           {LEGEND.map((l) => (
             <span key={l.label} className="flex items-center gap-1.5">
-              <span className="h-3 w-3 rounded-sm" style={{ background: l.color }} />
+              <span
+                className={`h-3 rounded-sm ${l.colors.length > 1 ? "w-8" : "w-3"}`}
+                style={{ background: l.colors.length > 1 ? `linear-gradient(90deg, ${l.colors.join(", ")})` : l.colors[0] }}
+                title={l.colors.length > 1 ? "旅遊次數越多越亮" : undefined}
+              />
               {l.label}
             </span>
           ))}
