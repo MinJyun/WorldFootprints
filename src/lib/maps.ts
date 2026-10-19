@@ -1,6 +1,6 @@
 import { geoAlbersUsa, geoEqualEarth, geoGraticule10, geoMercator, geoOrthographic, geoPath, type GeoPath } from "d3-geo";
 import type { Feature, FeatureCollection, Geometry } from "geojson";
-import { US_STATES, countryName, numericToAlpha2, placeKey, prefectureCode } from "./places";
+import { US_STATES, countryName, numericToAlpha2, placeKey, placeName, prefectureCode } from "./places";
 
 export const MAP_WIDTH = 960;
 export const MAP_HEIGHT = 540;
@@ -122,4 +122,31 @@ export const US_MAP: MapConfig = {
   },
 };
 
-export const DRILLDOWN_MAPS: Record<string, MapConfig> = { JP: JAPAN_MAP, US: US_MAP };
+// 地圖檔的 regions 物件,每個行政區帶 code 屬性(即 region_code)。
+// frame 用來只框本土,避免遠方離島把地圖撐小;框外的部分會被裁掉
+function regionMap(country: string, src: string, frame?: GeoFeature): MapConfig {
+  return {
+    src,
+    object: "regions",
+    toLayers(collection) {
+      const projection = geoMercator().fitExtent([[16, 16], [MAP_WIDTH - 16, MAP_HEIGHT - 16]], frame ?? collection);
+      if (frame) projection.clipExtent([[0, 0], [MAP_WIDTH, MAP_HEIGHT]]);
+      const path = geoPath(projection);
+      return {
+        shapes: collection.features.map((f) => {
+          const key = placeKey(country, String(f.properties.code));
+          return { key, name: placeName(key), d: path(f) ?? "" };
+        }),
+      };
+    },
+  };
+}
+
+export const DRILLDOWN_MAPS: Record<string, MapConfig> = {
+  JP: JAPAN_MAP,
+  US: US_MAP,
+  KR: regionMap("KR", "/geo/korea.json"),
+  TH: regionMap("TH", "/geo/thailand.json"),
+  // 西沙、南沙群島在框外
+  VN: regionMap("VN", "/geo/vietnam.json", bounds([102.1, 8.4], [109.5, 23.4])),
+};

@@ -114,6 +114,8 @@ export function FootprintsView({ profile, trips: initialTrips, photos: initialPh
             const count = [...stats.entries()].filter(
               ([key, s]) => key.startsWith(`${country}-`) && key !== "US-DC" && hasVisited(s),
             ).length;
+            // 沒去過的國家不佔版面
+            if (!count) return null;
             return <Stat key={country} label={`${countryName(country)}${unit}`} value={`${count} / ${total}`} />;
           })}
           <Stat label="旅程" value={trips.length} />

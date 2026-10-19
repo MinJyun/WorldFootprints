@@ -43,5 +43,7 @@
 - `src/components/TripPanel.tsx` 旅程清單、地點、旅程內容與編輯(日期、地點、筆記、照片)
 - `src/lib/maps.ts` 地圖投影設定;要新增其他國家的下鑽地圖從這裡加
 - `public/geo/` 地圖資料:world-atlas 50m 與 110m(地球儀轉動時用)、us-atlas states-10m、[dataofjapan/land](https://github.com/dataofjapan/land)(已用 mapshaper 簡化)
+  - 南韓、泰國:[Natural Earth](https://www.naturalearthdata.com/) admin-1 10m(公有領域)
+  - 越南 2025 年新制 34 省市:[OCHA HDX](https://data.humdata.org/dataset/cod-ab-vnm),資料來源越南統計總局(GSO),CC BY-IGO
 
 寫入一律由瀏覽器直接呼叫 Supabase,權限由資料庫 RLS 控管:所有人可讀,只有本人可寫。
