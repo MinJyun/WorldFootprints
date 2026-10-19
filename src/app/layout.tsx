@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { Geist } from "next/font/google";
 import { AuthNav } from "@/components/AuthNav";
+import { Toaster } from "@/components/Toast";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             隱私權政策
           </Link>
         </footer>
+        <Toaster />
       </body>
     </html>
   );

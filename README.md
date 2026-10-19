@@ -6,9 +6,9 @@
 
 ## 紀錄方式
 
-以「旅程」為單位:一趟旅程有日期區間、依路線順序的多個地點、筆記與照片。旅程分旅遊、住過兩種;每個地點可標記為「路過」(轉機、車窗經過)。
+以「旅程」為單位:一趟旅程有日期區間、依路線順序的多個地點、筆記與照片。旅程分旅遊、生活過兩種;每個地點可標記為「路過」(轉機、車窗經過)。
 
-地圖顏色依去過的次數:住過為青色;旅遊 1 次、2–3 次、4 次以上越來越亮;只有路過最暗。同一趟旅程裡在某國有停留就算去過,路過不計入去過的國家數。
+地圖顏色依去過的次數:生活過為青色;旅遊 1 次、2–3 次、4 次以上越來越亮;只有路過最暗。同一趟旅程裡在某國有停留就算去過,路過不計入去過的國家數。
 
 日本可細分到都道府縣、美國可細分到州。
 
@@ -43,6 +43,7 @@
 - `src/components/TripPanel.tsx` 旅程清單、地點、旅程內容與編輯(日期、地點、筆記、照片)
 - `src/lib/maps.ts` 地圖投影設定;要新增其他國家的下鑽地圖從這裡加
 - `public/geo/` 地圖資料:world-atlas 50m 與 110m(地球儀轉動時用)、us-atlas states-10m、[dataofjapan/land](https://github.com/dataofjapan/land)(已用 mapshaper 簡化)
+  - 台灣 22 縣市:[taiwan-atlas](https://github.com/dkaoster/taiwan-atlas)(內政部資料)
   - 南韓、泰國:[Natural Earth](https://www.naturalearthdata.com/) admin-1 10m(公有領域)
   - 越南 2025 年新制 34 省市:[OCHA HDX](https://data.humdata.org/dataset/cod-ab-vnm),資料來源越南統計總局(GSO),CC BY-IGO
 

@@ -4,7 +4,7 @@ export type TripKind = "trip" | "lived";
 
 export const TRIP_KINDS: { value: TripKind; label: string; hint: string }[] = [
   { value: "trip", label: "旅遊", hint: "出遊、出差、探親都算" },
-  { value: "lived", label: "住過", hint: "在當地生活過" },
+  { value: "lived", label: "生活過", hint: "在當地生活過" },
 ];
 
 export type Trip = {
@@ -73,12 +73,12 @@ export function splitPlaceKey(key: string): [country: string, region: string] {
   return [country, region];
 }
 
-// ---- 地圖顏色:旅遊次數越多越亮,住過用青色,只有路過最暗 ----
+// ---- 地圖顏色:旅遊次數越多越亮,生活過用青色,只有路過最暗 ----
 
 export type PlaceStat = { trips: number; transits: number; lived: boolean };
 
 export const LEGEND: { label: string; color: string }[] = [
-  { label: "住過", color: "#5ee6d8" },
+  { label: "生活過", color: "#5ee6d8" },
   { label: "4 次以上", color: "#ffe08a" },
   { label: "2–3 次", color: "#f5b335" },
   { label: "1 次", color: "#cf7d1c" },
@@ -97,7 +97,7 @@ export function statColor(stat: PlaceStat | undefined): string | undefined {
 export function statLabel(stat: PlaceStat | undefined): string {
   if (!stat) return "還沒去過";
   const parts: string[] = [];
-  if (stat.lived) parts.push("住過");
+  if (stat.lived) parts.push("生活過");
   if (stat.trips) parts.push(`去過 ${stat.trips} 次`);
   if (stat.transits) parts.push(`路過 ${stat.transits} 次`);
   return parts.join("・");
@@ -202,8 +202,16 @@ const VIETNAM_PROVINCES: Record<string, string> = {
   "92": "芹苴市", "96": "金甌省",
 };
 
+// ISO 3166-2:TW 縣市碼
+const TAIWAN_COUNTIES: Record<string, string> = {
+  TPE: "臺北市", NWT: "新北市", TAO: "桃園市", TXG: "臺中市", TNN: "臺南市", KHH: "高雄市", KEE: "基隆市", HSZ: "新竹市",
+  CYI: "嘉義市", HSQ: "新竹縣", MIA: "苗栗縣", CHA: "彰化縣", NAN: "南投縣", YUN: "雲林縣", CYQ: "嘉義縣", PIF: "屏東縣",
+  ILA: "宜蘭縣", HUA: "花蓮縣", TTT: "臺東縣", PEN: "澎湖縣", KIN: "金門縣", LIE: "連江縣",
+};
+
 // 其他可細分國家的行政區名稱,地圖檔裡的 code 即為 region_code
 const REGION_NAMES: Record<string, Record<string, string>> = {
+  TW: TAIWAN_COUNTIES,
   TH: THAILAND_PROVINCES,
   VN: VIETNAM_PROVINCES,
   KR: KOREA_REGIONS,
@@ -221,6 +229,7 @@ export function placeName(key: string): string {
 export const DRILLDOWNS: Record<string, { unit: string; total: number }> = {
   JP: { unit: "都道府縣", total: JAPAN_PREFECTURES.length },
   US: { unit: "州", total: 50 }, // 華盛頓特區可紀錄,但不計入 50 州
+  TW: { unit: "縣市", total: Object.keys(TAIWAN_COUNTIES).length },
   KR: { unit: "市道", total: Object.keys(KOREA_REGIONS).length },
   TH: { unit: "府", total: Object.keys(THAILAND_PROVINCES).length },
   VN: { unit: "省市", total: Object.keys(VIETNAM_PROVINCES).length },

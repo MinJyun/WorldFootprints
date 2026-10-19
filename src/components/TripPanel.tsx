@@ -21,6 +21,7 @@ import {
   type TripRow,
 } from "@/lib/places";
 import type { FriendTrip } from "./UserFootprints";
+import { toast } from "./Toast";
 
 const KIND_LABEL = Object.fromEntries(TRIP_KINDS.map((k) => [k.value, k.label])) as Record<TripKind, string>;
 
@@ -330,6 +331,7 @@ export function TripEditor({
       const { data, error } = await supabase.from("trips").select(TRIP_COLUMNS).eq("id", tripId).single<TripRow>();
       if (error) throw error;
       onSaved(toTrip(data));
+      toast(trip ? "已儲存" : "已新增旅程，可以加入照片了");
     });
 
   const remove = () =>
@@ -343,6 +345,7 @@ export function TripEditor({
       if (error) throw error;
       onPhotosChange((all) => all.filter((p) => p.trip_id !== trip.id));
       onDeleted(trip.id);
+      toast("已刪除");
     });
 
   const upload = (files: FileList) =>
@@ -363,6 +366,7 @@ export function TripEditor({
         if (error) throw error;
         onPhotosChange((all) => [...all, data]);
       }
+      toast(files.length > 1 ? `已上傳 ${files.length} 張照片` : "照片已上傳");
     });
 
   const removePhoto = (photo: Photo) =>

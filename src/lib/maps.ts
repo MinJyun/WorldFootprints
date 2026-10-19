@@ -145,6 +145,7 @@ function regionMap(country: string, src: string, frame?: GeoFeature): MapConfig 
 export const DRILLDOWN_MAPS: Record<string, MapConfig> = {
   JP: JAPAN_MAP,
   US: US_MAP,
+  TW: regionMap("TW", "/geo/taiwan.json"),
   KR: regionMap("KR", "/geo/korea.json"),
   TH: regionMap("TH", "/geo/thailand.json"),
   // 西沙、南沙群島在框外

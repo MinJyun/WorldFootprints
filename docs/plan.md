@@ -95,7 +95,7 @@ create policy "achievements are public" on public.achievements for select using 
 | `{"type":"countries","count":10}` | 去過 N 個國家 | 十國旅人 |
 | `{"type":"regions","country":"JP","count":47}` | 某國去過 N 個地區 | 日本 47 都道府縣制霸 |
 | `{"type":"continent","continent":"EU","count":10}` | 某洲去過 N 國 | 歐洲十國 |
-| `{"type":"lived","count":2}` | 住過 N 個國家 | 雙城生活 |
+| `{"type":"lived","count":2}` | 生活過 N 個國家 | 雙城生活 |
 
 次數的算法沿用地圖亮度:一趟旅程算一次、路過不算。
 
