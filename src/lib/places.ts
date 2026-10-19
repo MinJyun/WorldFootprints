@@ -49,9 +49,14 @@ export function tripTitle(trip: Pick<Trip, "title" | "places">): string {
   return names.length > 3 ? `${names.slice(0, 3).join("、")} 等 ${names.length} 地` : names.join("、");
 }
 
-// 新的在前,沒填日期的放最後
-export function sortTrips(trips: Trip[]): Trip[] {
-  return [...trips].sort((a, b) => (b.start_date ?? "").localeCompare(a.start_date ?? ""));
+// 依旅遊日期排序(預設新的在前),同一天出發再比結束日;沒填日期的一律放最後
+export function sortTrips(trips: Trip[], newestFirst = true): Trip[] {
+  const dir = newestFirst ? -1 : 1;
+  return [...trips].sort((a, b) => {
+    if (!a.start_date || !b.start_date) return (a.start_date ? 0 : 1) - (b.start_date ? 0 : 1);
+    const cmp = a.start_date.localeCompare(b.start_date) || (a.end_date ?? "").localeCompare(b.end_date ?? "");
+    return cmp * dir;
+  });
 }
 
 export type Photo = { id: string; trip_id: string; path: string };

@@ -43,6 +43,16 @@ function PrimaryButton(props: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   );
 }
 
+export type TripOrder = { newestFirst: boolean; onToggle: () => void };
+
+function OrderToggle({ order }: { order: TripOrder }) {
+  return (
+    <button onClick={order.onToggle} className="text-xs text-muted hover:text-foreground">
+      {order.newestFirst ? "新 → 舊" : "舊 → 新"} ⇅
+    </button>
+  );
+}
+
 function TripItem({ trip, onOpen }: { trip: Trip; onOpen: (id: string) => void }) {
   return (
     <li>
@@ -64,16 +74,21 @@ function TripItem({ trip, onOpen }: { trip: Trip; onOpen: (id: string) => void }
 
 export function TripList({
   trips,
+  order,
   onOpen,
   onNew,
 }: {
   trips: Trip[];
+  order: TripOrder;
   onOpen: (id: string) => void;
   onNew?: () => void;
 }) {
   return (
     <Card>
-      <h2 className="text-lg font-semibold">所有旅程</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">所有旅程</h2>
+        {trips.length > 1 && <OrderToggle order={order} />}
+      </div>
       {onNew && <PrimaryButton onClick={onNew}>＋ 新增旅程</PrimaryButton>}
       {trips.length ? (
         <ul className="max-h-[480px] space-y-2 overflow-y-auto">
@@ -92,6 +107,7 @@ export function PlaceDetail({
   placeKey,
   stat,
   trips,
+  order,
   onOpen,
   onBack,
   onNew,
@@ -99,13 +115,17 @@ export function PlaceDetail({
   placeKey: string;
   stat?: PlaceStat;
   trips: Trip[];
+  order: TripOrder;
   onOpen: (id: string) => void;
   onBack: () => void;
   onNew?: () => void;
 }) {
   return (
     <Card>
-      <BackButton onClick={onBack} />
+      <div className="flex items-center justify-between">
+        <BackButton onClick={onBack} />
+        {trips.length > 1 && <OrderToggle order={order} />}
+      </div>
       <div>
         <h2 className="text-lg font-semibold">{placeName(placeKey)}</h2>
         <p className="text-muted">{statLabel(stat)}</p>

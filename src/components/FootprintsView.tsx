@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { GeoMap } from "./GeoMap";
-import { PlaceDetail, TripDetail, TripEditor, TripList } from "./TripPanel";
+import { PlaceDetail, TripDetail, TripEditor, TripList, type TripOrder } from "./TripPanel";
 import { getBrowserClient } from "@/lib/supabase";
 import { DRILLDOWN_MAPS, GLOBE_MAP, WORLD_MAP } from "@/lib/maps";
 import {
@@ -43,6 +43,7 @@ export function FootprintsView({ profile, trips: initialTrips, photos: initialPh
   const [globe, setGlobe] = useState(false);
   const [panel, setPanel] = useState<Panel>({ mode: "list" });
   const [isOwner, setIsOwner] = useState(false);
+  const [newestFirst, setNewestFirst] = useState(true);
 
   // 跟著登入狀態更新;在其他分頁登出時這裡也會收起編輯功能
   useEffect(() => {
@@ -84,8 +85,11 @@ export function FootprintsView({ profile, trips: initialTrips, photos: initialPh
     [view, editing],
   );
 
+  const ordered = useMemo(() => sortTrips(trips, newestFirst), [trips, newestFirst]);
+  const order = { newestFirst, onToggle: () => setNewestFirst((v) => !v) };
+
   const tripsAt = (key: string) =>
-    trips.filter((t) => t.places.some((p) => p.key === key || splitPlaceKey(p.key)[0] === key));
+    ordered.filter((t) => t.places.some((p) => p.key === key || splitPlaceKey(p.key)[0] === key));
 
   const visitedCountries = [...stats.entries()].filter(([key, s]) => !key.includes("-") && hasVisited(s)).length;
 
@@ -162,7 +166,8 @@ export function FootprintsView({ profile, trips: initialTrips, photos: initialPh
         <PanelView
           panel={panel}
           setPanel={setPanel}
-          trips={trips}
+          trips={ordered}
+          order={order}
           photos={photos}
           tripsAt={tripsAt}
           stats={stats}
@@ -186,6 +191,7 @@ function PanelView({
   panel,
   setPanel,
   trips,
+  order,
   photos,
   tripsAt,
   stats,
@@ -197,6 +203,7 @@ function PanelView({
   panel: Panel;
   setPanel: (panel: Panel) => void;
   trips: Trip[];
+  order: TripOrder;
   photos: Photo[];
   tripsAt: (key: string) => Trip[];
   stats: ReturnType<typeof computeStats>;
@@ -211,7 +218,7 @@ function PanelView({
   switch (panel.mode) {
     case "list":
       return (
-        <TripList trips={trips} onOpen={open} onNew={ownerId ? () => setPanel({ mode: "edit", places: [] }) : undefined} />
+        <TripList trips={trips} order={order} onOpen={open} onNew={ownerId ? () => setPanel({ mode: "edit", places: [] }) : undefined} />
       );
     case "place":
       return (
@@ -219,6 +226,7 @@ function PanelView({
           placeKey={panel.key}
           stat={stats.get(panel.key)}
           trips={tripsAt(panel.key)}
+          order={order}
           onOpen={open}
           onBack={back}
           onNew={ownerId ? () => setPanel({ mode: "edit", places: [{ key: panel.key, transit: false }] }) : undefined}
