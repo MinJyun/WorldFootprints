@@ -1,6 +1,6 @@
 # World Footprints
 
-把去過的地方點亮的旅行足跡地圖。每個人有自己的公開頁面 `/u/帳號名稱`。
+把去過的地方點亮的旅行足跡地圖。每個人有自己的頁面 `/u/帳號名稱`,只有自己和同意追蹤的人看得到。
 
 技術:Next.js 16 + Supabase(登入、資料庫、照片)+ d3-geo,部署在 Vercel。
 
@@ -10,7 +10,7 @@
 
 地圖顏色依去過的次數:生活過為青色(旅遊次數越多越亮);旅遊 1 次、2–3 次、4 次以上越來越亮;只有路過最暗。同一趟旅程裡在某國有停留就算去過,路過不計入去過的國家數。
 
-日本可細分到都道府縣、美國可細分到州。
+可細分到行政區的國家:日本(都道府縣)、美國(州)、台灣(縣市)、南韓(市道)、泰國(府)、越南(省市)。
 
 ## 第一次設定
 
@@ -32,13 +32,23 @@
    - Authorized redirect URIs:`https://<Supabase 專案 ID>.supabase.co/auth/v1/callback`
 4. 把 Client ID 與 Client secret 填到 Supabase → Authentication → Sign In / Providers → Google 並啟用
 
+## 測試
+
+```bash
+npm test
+```
+
+用 Vitest 測統計規則、排序、日期、名稱,以及 `public/geo` 地圖檔與名稱表、統計分母是否一致。推上 GitHub 時會由 GitHub Actions 自動跑 lint、型別檢查與測試(`.github/workflows/ci.yml`)。
+
+新增可細分的國家時,地圖檔、`places.ts` 名稱表、`DRILLDOWNS`、`DRILLDOWN_MAPS` 四處都要加,漏了測試會失敗。
+
 ## 部署到 Vercel
 
 在 Vercel 匯入此 repo,Environment Variables 填入與 `.env.local` 相同的兩個變數即可。
 
 ## 結構
 
-- `src/app/u/[username]` 個人地圖頁(公開)
+- `src/app/u/[username]` 個人地圖頁(本人與追蹤者可看)
 - `src/components/FootprintsView.tsx` 地圖、統計與切換世界/分區地圖
 - `src/components/TripPanel.tsx` 旅程清單、地點、旅程內容與編輯(日期、地點、筆記、照片)
 - `src/lib/maps.ts` 地圖投影設定;要新增其他國家的下鑽地圖從這裡加

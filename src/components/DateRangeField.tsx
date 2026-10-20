@@ -4,6 +4,7 @@ import { useState } from "react";
 import { DayPicker } from "react-day-picker";
 import { zhTW } from "react-day-picker/locale";
 import "react-day-picker/style.css";
+import { pickDay } from "@/lib/dateRange";
 
 // 日期以 "YYYY-MM-DD" 字串往來,空字串代表未填
 function toDate(value: string): Date | undefined {
@@ -19,7 +20,6 @@ function toValue(date: Date): string {
 
 const THIS_YEAR = new Date().getFullYear();
 
-// 點第一下選開始日,第二下選結束日(點在開始日之前會自動對調);再點就重新選
 export function DateRangeField({
   start,
   end,
@@ -38,15 +38,10 @@ export function DateRangeField({
   const to = toDate(end);
 
   function pick(day: Date) {
-    if (!pickingEnd || !from) {
-      onChange(toValue(day), toValue(day));
-      setPickingEnd(true);
-      return;
-    }
-    const [a, b] = day < from ? [day, from] : [from, day];
-    onChange(toValue(a), toValue(b));
-    setPickingEnd(false);
-    setOpen(false);
+    const next = pickDay(start, pickingEnd, toValue(day));
+    onChange(next.start, next.end);
+    setPickingEnd(!next.done);
+    if (next.done) setOpen(false);
   }
 
   const label = !start ? "選擇日期" : !end ? (openEnded ? `${start} ~ 至今` : start) : start === end ? start : `${start} ~ ${end}`;

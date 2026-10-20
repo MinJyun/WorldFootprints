@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",
@@ -36,6 +37,7 @@
     "tailwindcss": "^4",
     "typescript": "^5",
     "us-atlas": "^3.0.1",
+    "vitest": "^3.2.7",
     "world-atlas": "^2.0.2"
   }
 }
