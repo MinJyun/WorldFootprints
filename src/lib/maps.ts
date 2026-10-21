@@ -8,8 +8,8 @@ export const MAP_HEIGHT = 540;
 // key 為 undefined 代表無法紀錄的區域(例如沒有 ISO 代碼的爭議領土)
 export type Shape = { key?: string; name: string; d: string };
 
-type Collection = FeatureCollection<Geometry, Record<string, unknown>>;
-type GeoFeature = Feature<Geometry, Record<string, unknown>>;
+export type Collection = FeatureCollection<Geometry, Record<string, unknown>>;
+export type GeoFeature = Feature<Geometry, Record<string, unknown>>;
 
 export type MapLayers = {
   shapes: Shape[];
@@ -27,6 +27,7 @@ export type MapConfig = {
   globe?: boolean; // 可拖曳旋轉的地球儀,每次視角變動都重新投影
   motionSrc?: string; // 轉動中改用的低精度地圖,停下來再換回 src
   toLayers: (collection: Collection, view: GlobeView) => MapLayers;
+  regionKey?: (feature: GeoFeature) => string | undefined; // 可細分地圖:行政區對應的地點 key
 };
 
 const SPHERE = { type: "Sphere" } as const;
@@ -82,9 +83,12 @@ function bounds(southWest: [number, number], northEast: [number, number]): GeoFe
   return { type: "Feature", properties: {}, geometry: { type: "MultiPoint", coordinates: [southWest, northEast] } };
 }
 
+const japanKey = (f: GeoFeature) => placeKey("JP", prefectureCode(f.properties.id as number));
+
 export const JAPAN_MAP: MapConfig = {
   src: "/geo/japan.json",
   object: "japan",
+  regionKey: japanKey,
   toLayers(collection) {
     const mainland = geoPath(geoMercator().fitExtent([[0, 12], [MAP_WIDTH, MAP_HEIGHT - 12]], MAINLAND_BOUNDS));
     const [[x0, y0], [x1, y1]] = INSET;
@@ -95,7 +99,7 @@ export const JAPAN_MAP: MapConfig = {
     );
     return {
       shapes: collection.features.map((f) => ({
-        key: placeKey("JP", prefectureCode(f.properties.id as number)),
+        key: japanKey(f),
         name: String(f.properties.nam_ja),
         d: (f.properties.id === OKINAWA_ID ? inset(f) : mainland(f)) ?? "",
       })),
@@ -107,6 +111,7 @@ export const JAPAN_MAP: MapConfig = {
 export const US_MAP: MapConfig = {
   src: "/geo/us-states.json",
   object: "states",
+  regionKey: (f) => (String(f.id) in US_STATES ? placeKey("US", US_STATES[String(f.id)][0]) : undefined),
   toLayers(collection) {
     // geoAlbersUsa 會把阿拉斯加、夏威夷放在左下角;波多黎各等屬地在世界地圖上另有國碼,這裡略過
     const states = collection.features.filter((f) => String(f.id) in US_STATES);
@@ -125,16 +130,18 @@ export const US_MAP: MapConfig = {
 // 地圖檔的 regions 物件,每個行政區帶 code 屬性(即 region_code)。
 // frame 用來只框本土,避免遠方離島把地圖撐小;框外的部分會被裁掉
 function regionMap(country: string, src: string, frame?: GeoFeature): MapConfig {
+  const regionKey = (f: GeoFeature) => placeKey(country, String(f.properties.code));
   return {
     src,
     object: "regions",
+    regionKey,
     toLayers(collection) {
       const projection = geoMercator().fitExtent([[16, 16], [MAP_WIDTH - 16, MAP_HEIGHT - 16]], frame ?? collection);
       if (frame) projection.clipExtent([[0, 0], [MAP_WIDTH, MAP_HEIGHT]]);
       const path = geoPath(projection);
       return {
         shapes: collection.features.map((f) => {
-          const key = placeKey(country, String(f.properties.code));
+          const key = regionKey(f);
           return { key, name: placeName(key), d: path(f) ?? "" };
         }),
       };

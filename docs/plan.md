@@ -1,6 +1,6 @@
 # 功能規劃:追蹤、成就、景點美食
 
-最後更新:2026-10-21。狀態:追蹤制與「點國家看追蹤的人的旅程」已實作(`supabase/migrations/0002_follows.sql`);成就第一批已實作(`src/lib/achievements.ts`);景點美食仍是草案。
+最後更新:2026-10-21。狀態:追蹤制與「點國家看追蹤的人的旅程」已實作(`supabase/migrations/0002_follows.sql`);成就第一批已實作(`src/lib/achievements.ts`);景點美食第一版已實作(`supabase/migrations/0003_spots.sql`)。
 
 ## 建議實作順序
 
@@ -104,6 +104,8 @@ create policy "achievements are public" on public.achievements for select using 
 次數的算法沿用地圖亮度:一趟旅程算一次、路過不算。
 
 ## 4. 景點與美食
+
+> 2026-10-21 第一版:景點從 OpenStreetMap(Nominatim)搜尋後加入,以 `osm_id` 去重;不記錄建立者(避免透露誰去過);加入景點時,所在縣市或府若不在旅程地點裡會自動補上。之後可做:分區地圖上的景點圖釘、「追蹤的人也去過這家」、景點類成就、匯入 Google 地圖已儲存地點與時間軸。以下為當初草案。
 
 ### 要先決定:景點是共用的還是各記各的?
 

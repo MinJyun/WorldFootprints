@@ -216,6 +216,7 @@ export function FootprintsView({ profile, trips: initialTrips, photos: initialPh
               setPanel({ mode: "list" });
             }}
             onPhotosChange={setPhotos}
+            onTripChange={(trip) => setTrips((prev) => sortTrips([...prev.filter((t) => t.id !== trip.id), trip]))}
           />
         </div>
       </div>
@@ -237,6 +238,7 @@ function PanelView({
   onSaved,
   onDeleted,
   onPhotosChange,
+  onTripChange,
 }: {
   panel: Panel;
   setPanel: (panel: Panel) => void;
@@ -251,6 +253,7 @@ function PanelView({
   onSaved: (trip: Trip) => void;
   onDeleted: (id: string) => void;
   onPhotosChange: (update: (photos: Photo[]) => Photo[]) => void;
+  onTripChange: (trip: Trip) => void;
 }) {
   const open = (id: string) => setPanel({ mode: "trip", id });
   const back = () => setPanel({ mode: "list" });
@@ -306,6 +309,7 @@ function PanelView({
           onDeleted={onDeleted}
           onCancel={() => setPanel(trip ? { mode: "trip", id: trip.id } : { mode: "list" })}
           onPhotosChange={onPhotosChange}
+          onTripChange={onTripChange}
         />
       );
     }

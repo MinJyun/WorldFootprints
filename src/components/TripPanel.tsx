@@ -23,6 +23,8 @@ import {
 import type { FriendTrip } from "./UserFootprints";
 import { toast } from "./Toast";
 import { DateRangeField } from "./DateRangeField";
+import { SpotEditor, SpotList } from "./SpotPanel";
+import { spotsAt } from "@/lib/spots";
 
 const KIND_LABEL = Object.fromEntries(TRIP_KINDS.map((k) => [k.value, k.label])) as Record<TripKind, string>;
 
@@ -144,6 +146,7 @@ export function PlaceDetail({
           ))}
         </ul>
       )}
+      <SpotList title="去過的景點與美食" spots={spotsAt(trips, placeKey)} />
       {friendTrips.length > 0 && (
         <div className="space-y-2 border-t border-border pt-4">
           <h3 className="font-semibold">追蹤的人也去過</h3>
@@ -198,6 +201,7 @@ export function TripDetail({
       </div>
       <PlaceChips places={trip.places} />
       {trip.note && <p className="whitespace-pre-wrap">{trip.note}</p>}
+      <SpotList title="景點與美食" spots={trip.spots} />
       <PhotoGrid photos={photos} />
     </Card>
   );
@@ -262,6 +266,7 @@ export function TripEditor({
   onDeleted,
   onCancel,
   onPhotosChange,
+  onTripChange,
 }: {
   trip?: Trip;
   places: TripPlace[];
@@ -272,6 +277,7 @@ export function TripEditor({
   onDeleted: (id: string) => void;
   onCancel: () => void;
   onPhotosChange: (update: (photos: Photo[]) => Photo[]) => void;
+  onTripChange: (trip: Trip) => void;
 }) {
   const [kind, setKind] = useState<TripKind>(trip?.kind ?? "trip");
   const [title, setTitle] = useState(trip?.title ?? "");
@@ -332,7 +338,7 @@ export function TripEditor({
       const { data, error } = await supabase.from("trips").select(TRIP_COLUMNS).eq("id", tripId).single<TripRow>();
       if (error) throw error;
       onSaved(toTrip(data));
-      toast(trip ? "已儲存" : "已新增旅程，可以加入照片了");
+      toast(trip ? "已儲存" : "已新增旅程，可以加入照片和景點了");
     });
 
   const remove = () =>
@@ -469,8 +475,9 @@ export function TripEditor({
           </label>
         </div>
       ) : (
-        <p className="text-muted">儲存後就可以加入照片</p>
+        <p className="text-muted">儲存後就可以加入照片和景點</p>
       )}
+      {trip && <SpotEditor trip={trip} places={places} onPlacesChange={onPlacesChange} onTripChange={onTripChange} />}
       {error && <p className="text-red-400">{error}</p>}
     </Card>
   );

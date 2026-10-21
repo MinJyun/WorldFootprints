@@ -15,23 +15,46 @@ export type Trip = {
   end_date: string | null;
   note: string | null;
   places: TripPlace[]; // 依路線順序
+  spots: TripSpot[]; // 依加入順序
 };
 
 // transit:只是路過(轉機、車窗經過)
 export type TripPlace = { key: string; transit: boolean };
 
-type TripPlaceRow = { country_code: string; region_code: string; transit: boolean; position: number };
+export type SpotCategory = "sight" | "food" | "stay" | "other";
 
-export type TripRow = Omit<Trip, "places"> & { trip_places: TripPlaceRow[] };
+// 共用景點庫的一筆;osm_id 例:N123456
+export type Spot = {
+  id: string;
+  osm_id: string;
+  name: string;
+  category: SpotCategory;
+  country_code: string;
+  region_code: string;
+  lat: number;
+  lng: number;
+};
+
+// 某趟旅程去過的景點,評分與心得是個人的
+export type TripSpot = { spot: Spot; rating: number | null; note: string | null };
+
+type TripPlaceRow = { country_code: string; region_code: string; transit: boolean; position: number };
+type TripSpotRow = TripSpot & { created_at: string };
+
+export type TripRow = Omit<Trip, "places" | "spots"> & { trip_places: TripPlaceRow[]; trip_spots: TripSpotRow[] };
 
 export const TRIP_COLUMNS =
-  "id, kind, title, start_date, end_date, note, trip_places(country_code, region_code, transit, position)";
+  "id, kind, title, start_date, end_date, note, trip_places(country_code, region_code, transit, position), " +
+  "trip_spots(rating, note, created_at, spot:spots(id, osm_id, name, category, country_code, region_code, lat, lng))";
 
-export function toTrip({ trip_places, ...trip }: TripRow): Trip {
+export function toTrip({ trip_places, trip_spots, ...trip }: TripRow): Trip {
   const places = [...trip_places]
     .sort((a, b) => a.position - b.position)
     .map((p) => ({ key: placeKey(p.country_code, p.region_code), transit: p.transit }));
-  return { ...trip, places };
+  const spots = [...trip_spots]
+    .sort((a, b) => a.created_at.localeCompare(b.created_at))
+    .map(({ spot, rating, note }) => ({ spot, rating, note }));
+  return { ...trip, places, spots };
 }
 
 export function formatDates(trip: Pick<Trip, "kind" | "start_date" | "end_date">): string {

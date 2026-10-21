@@ -12,6 +12,7 @@ function trip(places: (string | [string, "transit"])[], start: string | null = n
     end_date: start,
     note: null,
     places: places.map((p) => (typeof p === "string" ? { key: p, transit: false } : { key: p[0], transit: true })),
+    spots: [],
   };
 }
 

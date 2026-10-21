@@ -24,6 +24,7 @@ function trip(places: (string | [string, "transit"])[], opts: Partial<Trip> & { 
     end_date: null,
     note: null,
     places: places.map((p) => (typeof p === "string" ? { key: p, transit: false } : { key: p[0], transit: true })),
+    spots: [],
     ...opts,
   };
 }
@@ -159,10 +160,28 @@ describe("toTrip", () => {
         { country_code: "JP", region_code: "13", transit: false, position: 1 },
         { country_code: "CZ", region_code: "", transit: true, position: 0 },
       ],
+      trip_spots: [],
     });
     expect(t.places).toEqual([
       { key: "CZ", transit: true },
       { key: "JP-13", transit: false },
+    ]);
+  });
+
+  it("景點依加入時間排序,去掉 created_at", () => {
+    const spot = (id: string) => ({
+      id, osm_id: `N${id}`, name: id, category: "food" as const, country_code: "JP", region_code: "13", lat: 35, lng: 139,
+    });
+    const t = toTrip({
+      id: "1", kind: "trip", title: null, start_date: null, end_date: null, note: null, trip_places: [],
+      trip_spots: [
+        { spot: spot("b"), rating: 4, note: null, created_at: "2026-10-21T10:00:00Z" },
+        { spot: spot("a"), rating: null, note: "好吃", created_at: "2026-10-21T09:00:00Z" },
+      ],
+    });
+    expect(t.spots).toEqual([
+      { spot: spot("a"), rating: null, note: "好吃" },
+      { spot: spot("b"), rating: 4, note: null },
     ]);
   });
 });
