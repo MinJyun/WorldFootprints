@@ -114,22 +114,25 @@ export function statLabel(stat: PlaceStat | undefined): string {
 // 同一趟裡只要有一處停留,該國就算去過,不算路過
 export function computeStats(trips: Trip[]): Map<string, PlaceStat> {
   const stats = new Map<string, PlaceStat>();
-  for (const trip of trips) {
-    const transitOnly = new Map<string, boolean>();
-    for (const { key, transit } of trip.places) {
-      for (const k of [key, splitPlaceKey(key)[0]]) {
-        transitOnly.set(k, (transitOnly.get(k) ?? true) && transit);
-      }
-    }
-    for (const [key, transit] of transitOnly) {
-      const stat = stats.get(key) ?? { trips: 0, transits: 0, lived: false };
-      if (transit) stat.transits++;
-      else if (trip.kind === "lived") stat.lived = true;
-      else stat.trips++;
-      stats.set(key, stat);
+  for (const trip of trips) addTripStats(stats, trip);
+  return stats;
+}
+
+// 把一趟旅程累加進 stats;成就用來逐趟計算達成的那一趟
+export function addTripStats(stats: Map<string, PlaceStat>, trip: Trip): void {
+  const transitOnly = new Map<string, boolean>();
+  for (const { key, transit } of trip.places) {
+    for (const k of [key, splitPlaceKey(key)[0]]) {
+      transitOnly.set(k, (transitOnly.get(k) ?? true) && transit);
     }
   }
-  return stats;
+  for (const [key, transit] of transitOnly) {
+    const stat = stats.get(key) ?? { trips: 0, transits: 0, lived: false };
+    if (transit) stat.transits++;
+    else if (trip.kind === "lived") stat.lived = true;
+    else stat.trips++;
+    stats.set(key, stat);
+  }
 }
 
 // 路過不算「去過」

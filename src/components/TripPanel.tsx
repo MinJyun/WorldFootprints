@@ -26,7 +26,7 @@ import { DateRangeField } from "./DateRangeField";
 
 const KIND_LABEL = Object.fromEntries(TRIP_KINDS.map((k) => [k.value, k.label])) as Record<TripKind, string>;
 
-function Card({ children }: { children: React.ReactNode }) {
+export function Card({ children }: { children: React.ReactNode }) {
   return <aside className="space-y-4 rounded-xl border border-border bg-panel p-4 text-sm">{children}</aside>;
 }
 

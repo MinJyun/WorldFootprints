@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { GeoMap } from "./GeoMap";
-import { PlaceDetail, TripDetail, TripEditor, TripList, type TripOrder } from "./TripPanel";
+import { Card, PlaceDetail, TripDetail, TripEditor, TripList, type TripOrder } from "./TripPanel";
+import { AchievementList } from "./AchievementList";
 import type { FriendTrip } from "./UserFootprints";
 import { getBrowserClient } from "@/lib/supabase";
 import { DRILLDOWN_MAPS, GLOBE_MAP, WORLD_MAP } from "@/lib/maps";
+import { computeAchievements } from "@/lib/achievements";
 import {
   ALL_COUNTRY_CODES,
   DRILLDOWNS,
@@ -25,6 +27,7 @@ import {
 
 type Panel =
   | { mode: "list" }
+  | { mode: "achievements" }
   | { mode: "place"; key: string }
   | { mode: "trip"; id: string }
   | { mode: "edit"; id?: string; places: TripPlace[] };
@@ -55,6 +58,7 @@ export function FootprintsView({ profile, trips: initialTrips, photos: initialPh
   }, [profile.id]);
 
   const stats = useMemo(() => computeStats(trips), [trips]);
+  const achievements = useMemo(() => computeAchievements(trips), [trips]);
   const colorFor = useCallback((key: string) => statColor(stats.get(key)), [stats]);
   const describe = useCallback((key: string) => statLabel(stats.get(key)), [stats]);
 
@@ -119,6 +123,7 @@ export function FootprintsView({ profile, trips: initialTrips, photos: initialPh
             return <Stat key={country} label={`${countryName(country)}${unit}`} value={`${count} / ${total}`} />;
           })}
           <Stat label="旅程" value={trips.length} />
+          <Stat label="成就" value={achievements.filter((a) => a.unlocked).length} />
         </dl>
       </div>
 
@@ -177,26 +182,42 @@ export function FootprintsView({ profile, trips: initialTrips, photos: initialPh
           </p>
         </div>
 
-        <PanelView
-          panel={panel}
-          setPanel={setPanel}
-          trips={ordered}
-          order={order}
-          photos={photos}
-          tripsAt={tripsAt}
-          friendTripsAt={friendTripsAt}
-          stats={stats}
-          ownerId={isOwner ? profile.id : undefined}
-          onSaved={(trip) => {
-            setTrips((prev) => sortTrips([...prev.filter((t) => t.id !== trip.id), trip]));
-            setPanel({ mode: "edit", id: trip.id, places: trip.places });
-          }}
-          onDeleted={(id) => {
-            setTrips((prev) => prev.filter((t) => t.id !== id));
-            setPanel({ mode: "list" });
-          }}
-          onPhotosChange={setPhotos}
-        />
+        <div className="space-y-2">
+          {(panel.mode === "list" || panel.mode === "achievements") && (
+            <div className="flex overflow-hidden rounded-lg border border-border text-sm">
+              {(["list", "achievements"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setPanel({ mode })}
+                  className={`flex-1 py-1.5 ${panel.mode === mode ? "bg-border text-foreground" : "text-muted hover:text-foreground"}`}
+                >
+                  {mode === "list" ? "旅程" : "成就"}
+                </button>
+              ))}
+            </div>
+          )}
+          <PanelView
+            panel={panel}
+            achievements={achievements}
+            setPanel={setPanel}
+            trips={ordered}
+            order={order}
+            photos={photos}
+            tripsAt={tripsAt}
+            friendTripsAt={friendTripsAt}
+            stats={stats}
+            ownerId={isOwner ? profile.id : undefined}
+            onSaved={(trip) => {
+              setTrips((prev) => sortTrips([...prev.filter((t) => t.id !== trip.id), trip]));
+              setPanel({ mode: "edit", id: trip.id, places: trip.places });
+            }}
+            onDeleted={(id) => {
+              setTrips((prev) => prev.filter((t) => t.id !== id));
+              setPanel({ mode: "list" });
+            }}
+            onPhotosChange={setPhotos}
+          />
+        </div>
       </div>
     </div>
   );
@@ -205,6 +226,7 @@ export function FootprintsView({ profile, trips: initialTrips, photos: initialPh
 function PanelView({
   panel,
   setPanel,
+  achievements,
   trips,
   order,
   photos,
@@ -218,6 +240,7 @@ function PanelView({
 }: {
   panel: Panel;
   setPanel: (panel: Panel) => void;
+  achievements: ReturnType<typeof computeAchievements>;
   trips: Trip[];
   order: TripOrder;
   photos: Photo[];
@@ -236,6 +259,12 @@ function PanelView({
     case "list":
       return (
         <TripList trips={trips} order={order} onOpen={open} onNew={ownerId ? () => setPanel({ mode: "edit", places: [] }) : undefined} />
+      );
+    case "achievements":
+      return (
+        <Card>
+          <AchievementList achievements={achievements} />
+        </Card>
       );
     case "place":
       return (
