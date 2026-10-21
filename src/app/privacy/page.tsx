@@ -6,7 +6,7 @@ export default function PrivacyPage() {
   return (
     <article className="mx-auto max-w-2xl space-y-6 py-6 text-sm leading-relaxed">
       <h1 className="text-2xl font-bold">隱私權政策</h1>
-      <p className="text-muted">最後更新：2026-10-19</p>
+      <p className="text-muted">最後更新：2026-10-21</p>
 
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">我們收集哪些資料</h2>
@@ -27,6 +27,13 @@ export default function PrivacyPage() {
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">資料存放與分享</h2>
         <p>資料存放於 Supabase，網站部署於 Vercel。我們不會出售或提供你的資料給其他第三方。</p>
+        <p>
+          搜尋景點時，你輸入的關鍵字會由你的瀏覽器直接送到 OpenStreetMap 的 Nominatim 搜尋服務（不含你的帳號資料），適用其
+          <a href="https://osmfoundation.org/wiki/Privacy_Policy" target="_blank" rel="noreferrer" className="underline">
+            隱私權政策
+          </a>
+          。
+        </p>
       </section>
 
       <section className="space-y-2">
