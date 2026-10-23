@@ -95,7 +95,14 @@ export function TripList({
         <h2 className="text-lg font-semibold">所有旅程</h2>
         {trips.length > 1 && <OrderToggle order={order} />}
       </div>
-      {onNew && <PrimaryButton onClick={onNew}>＋ 新增旅程</PrimaryButton>}
+      {onNew && (
+        <div className="space-y-1">
+          <PrimaryButton onClick={onNew}>＋ 新增旅程</PrimaryButton>
+          <Link href="/import" className="block text-center text-xs text-muted hover:text-foreground">
+            或從 Google 地圖時間軸匯入
+          </Link>
+        </div>
+      )}
       {trips.length ? (
         <ul className="max-h-[480px] space-y-2 overflow-y-auto">
           {trips.map((t) => (
