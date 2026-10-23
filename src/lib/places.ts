@@ -1,8 +1,9 @@
 import countries from "i18n-iso-countries";
 
-export type TripKind = "trip" | "lived";
+// footprint:只是去過、不算哪一趟旅行的地點,一筆一個地點,不出現在旅程清單
+export type TripKind = "trip" | "lived" | "footprint";
 
-export const TRIP_KINDS: { value: TripKind; label: string; hint: string }[] = [
+export const TRIP_KINDS: { value: Exclude<TripKind, "footprint">; label: string; hint: string }[] = [
   { value: "trip", label: "旅遊", hint: "出遊、出差、探親都算" },
   { value: "lived", label: "生活過", hint: "在當地生活過" },
 ];
@@ -98,7 +99,7 @@ export function splitPlaceKey(key: string): [country: string, region: string] {
 
 // ---- 地圖顏色:旅遊次數越多越亮;生活過用青色系,同樣依旅遊次數變亮;只有路過最暗 ----
 
-export type PlaceStat = { trips: number; transits: number; lived: boolean };
+export type PlaceStat = { trips: number; transits: number; lived: boolean; footprint: boolean };
 
 // 依旅遊次數分級:0 次、1 次、2–3 次、4 次以上
 const TRIP_SHADES = [undefined, "#cf7d1c", "#f5b335", "#ffe08a"] as const;
@@ -121,7 +122,7 @@ export const LEGEND: { label: string; colors: readonly string[] }[] = [
 export function statColor(stat: PlaceStat | undefined): string | undefined {
   if (!stat) return undefined;
   if (stat.lived) return LIVED_SHADES[tier(stat.trips)];
-  return TRIP_SHADES[tier(stat.trips)] ?? (stat.transits ? TRANSIT_COLOR : undefined);
+  return TRIP_SHADES[tier(stat.trips)] ?? (stat.footprint ? TRIP_SHADES[1] : stat.transits ? TRANSIT_COLOR : undefined);
 }
 
 export function statLabel(stat: PlaceStat | undefined): string {
@@ -129,6 +130,7 @@ export function statLabel(stat: PlaceStat | undefined): string {
   const parts: string[] = [];
   if (stat.lived) parts.push("生活過");
   if (stat.trips) parts.push(`去過 ${stat.trips} 次`);
+  else if (stat.footprint) parts.push("去過");
   if (stat.transits) parts.push(`路過 ${stat.transits} 次`);
   return parts.join("・");
 }
@@ -150,9 +152,10 @@ export function addTripStats(stats: Map<string, PlaceStat>, trip: Trip): void {
     }
   }
   for (const [key, transit] of transitOnly) {
-    const stat = stats.get(key) ?? { trips: 0, transits: 0, lived: false };
+    const stat = stats.get(key) ?? { trips: 0, transits: 0, lived: false, footprint: false };
     if (transit) stat.transits++;
     else if (trip.kind === "lived") stat.lived = true;
+    else if (trip.kind === "footprint") stat.footprint = true;
     else stat.trips++;
     stats.set(key, stat);
   }
@@ -160,7 +163,23 @@ export function addTripStats(stats: Map<string, PlaceStat>, trip: Trip): void {
 
 // 路過不算「去過」
 export function hasVisited(stat: PlaceStat | undefined): boolean {
-  return !!stat && (stat.trips > 0 || stat.lived);
+  return !!stat && (stat.trips > 0 || stat.lived || stat.footprint);
+}
+
+// 每個去過的地點(國家與行政區)最早的日期;路過不算,沒填日期的不列
+export function firstVisits(trips: Trip[]): Map<string, string> {
+  const first = new Map<string, string>();
+  for (const trip of trips) {
+    if (!trip.start_date) continue;
+    for (const { key, transit } of trip.places) {
+      if (transit) continue;
+      for (const k of new Set([key, splitPlaceKey(key)[0]])) {
+        const date = first.get(k);
+        if (!date || trip.start_date < date) first.set(k, trip.start_date);
+      }
+    }
+  }
+  return first;
 }
 
 // ---- 名稱 ----

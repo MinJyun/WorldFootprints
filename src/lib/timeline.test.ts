@@ -4,7 +4,7 @@ import type { FeatureCollection, Geometry } from "geojson";
 import type { GeometryCollection, Topology } from "topojson-specification";
 import { describe, expect, it } from "vitest";
 import { numericToAlpha2, type Trip } from "./places";
-import { groupTrips, homeCountry, locate, parseTimeline, planImport, toAreas, type Located } from "./timeline";
+import { groupTrips, homeCountry, homeKey, locate, parseTimeline, planImport, toAreas, unrecordedPlaces, type Located } from "./timeline";
 
 describe("parseTimeline", () => {
   it("iPhone 格式(陣列、geo: 座標)", () => {
@@ -88,6 +88,38 @@ describe("homeCountry", () => {
   });
 });
 
+describe("homeKey", () => {
+  it("住家國家裡標記為住家最多的行政區", () => {
+    const visits = [
+      visit("2025-01-01", "TW", "TW-TXG", true),
+      visit("2025-01-02", "TW", "TW-TPE"),
+      visit("2025-01-03", "TW", "TW-TPE"),
+      visit("2025-01-04", "JP", "JP-13", true),
+    ];
+    expect(homeKey(visits, "TW")).toBe("TW-TXG");
+    expect(homeKey(visits.slice(1, 3), "TW")).toBe("TW-TPE");
+  });
+});
+
+describe("unrecordedPlaces", () => {
+  it("列出還沒記錄過的地點與第一次去的日期", () => {
+    const lived: Trip = {
+      id: "l", kind: "lived", title: null, start_date: null, end_date: null, note: null,
+      places: [{ key: "TW-TXG", transit: false }], spots: [],
+    };
+    const visits = [
+      visit("2025-01-01", "TW", "TW-TXG"),
+      visit("2025-01-02", "TW", "TW-TNN"),
+      visit("2025-03-01", "TW", "TW-ILA"),
+      visit("2025-04-01", "TW", "TW-TNN"),
+    ];
+    expect(unrecordedPlaces(visits, [lived])).toEqual([
+      { key: "TW-TNN", date: "2025-01-02" },
+      { key: "TW-ILA", date: "2025-03-01" },
+    ]);
+  });
+});
+
 describe("groupTrips", () => {
   it("連續待在國外合成一趟,依出現順序列地點", () => {
     const drafts = groupTrips(
@@ -101,7 +133,7 @@ describe("groupTrips", () => {
         visit("2026-06-04", "TH", "TH-50"),
         visit("2026-06-05", "TW"),
       ],
-      "TW",
+      (v) => v.country !== "TW",
     );
     expect(drafts).toEqual([
       { start: "2025-10-10", end: "2025-10-20", places: [{ key: "AE", transit: false }, { key: "TR", transit: false }] },
@@ -110,8 +142,23 @@ describe("groupTrips", () => {
   });
 
   it("回到國內才分成兩趟;國外中間沒紀錄的日子不切開", () => {
-    expect(groupTrips([visit("2025-01-01", "JP"), visit("2025-01-09", "KR")], "TW")).toHaveLength(1);
-    expect(groupTrips([visit("2025-01-01", "JP"), visit("2025-01-02", "TW"), visit("2025-01-03", "JP")], "TW")).toHaveLength(2);
+    const abroad = (v: Located) => v.country !== "TW";
+    expect(groupTrips([visit("2025-01-01", "JP"), visit("2025-01-09", "KR")], abroad)).toHaveLength(1);
+    expect(groupTrips([visit("2025-01-01", "JP"), visit("2025-01-02", "TW"), visit("2025-01-03", "JP")], abroad)).toHaveLength(2);
+  });
+
+  it("國內:離開住家縣市才算,回家或出國就結束", () => {
+    const local = [
+      visit("2025-02-01", "TW", "TW-TXG"),
+      visit("2025-02-02", "TW", "TW-ILA"),
+      visit("2025-02-03", "TW", "TW-TPE"),
+      visit("2025-02-04", "TW", "TW-TXG"),
+      visit("2025-02-05", "TW", "TW-TNN"),
+    ];
+    expect(groupTrips(local, (v) => v.key !== "TW-TXG")).toEqual([
+      { start: "2025-02-02", end: "2025-02-03", places: [{ key: "TW-ILA", transit: false }, { key: "TW-TPE", transit: false }] },
+      { start: "2025-02-05", end: "2025-02-05", places: [{ key: "TW-TNN", transit: false }] },
+    ]);
   });
 });
 

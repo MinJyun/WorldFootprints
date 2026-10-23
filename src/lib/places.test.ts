@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   LEGEND,
   computeStats,
+  firstVisits,
   formatDates,
   hasVisited,
   placeName,
@@ -32,7 +33,7 @@ function trip(places: (string | [string, "transit"])[], opts: Partial<Trip> & { 
 describe("computeStats", () => {
   it("每趟旅程對同一地點只算一次", () => {
     const stats = computeStats([trip(["JP-13", "JP-27"]), trip(["JP-13"])]);
-    expect(stats.get("JP-13")).toEqual({ trips: 2, transits: 0, lived: false });
+    expect(stats.get("JP-13")).toEqual({ trips: 2, transits: 0, lived: false, footprint: false });
     expect(stats.get("JP-27")?.trips).toBe(1);
     // 一趟去了兩個縣,日本仍只算一次
     expect(stats.get("JP")?.trips).toBe(2);
@@ -40,28 +41,48 @@ describe("computeStats", () => {
 
   it("只有路過:算路過,不算去過", () => {
     const stats = computeStats([trip([["CZ", "transit"], "DK"])]);
-    expect(stats.get("CZ")).toEqual({ trips: 0, transits: 1, lived: false });
+    expect(stats.get("CZ")).toEqual({ trips: 0, transits: 1, lived: false, footprint: false });
     expect(hasVisited(stats.get("CZ"))).toBe(false);
     expect(hasVisited(stats.get("DK"))).toBe(true);
   });
 
   it("同一趟在某國有停留也有路過:該國算去過", () => {
     const stats = computeStats([trip([["US-CA", "transit"], "US-NY"])]);
-    expect(stats.get("US")).toEqual({ trips: 1, transits: 0, lived: false });
-    expect(stats.get("US-CA")).toEqual({ trips: 0, transits: 1, lived: false });
+    expect(stats.get("US")).toEqual({ trips: 1, transits: 0, lived: false, footprint: false });
+    expect(stats.get("US-CA")).toEqual({ trips: 0, transits: 1, lived: false, footprint: false });
     // 路過排在停留之後也一樣
-    expect(computeStats([trip(["US-NY", ["US-CA", "transit"]])]).get("US")).toEqual({ trips: 1, transits: 0, lived: false });
+    expect(computeStats([trip(["US-NY", ["US-CA", "transit"]])]).get("US")).toEqual({ trips: 1, transits: 0, lived: false, footprint: false });
   });
 
   it("生活過不計入旅遊次數,但算去過", () => {
     const stats = computeStats([trip(["TW-TPE"], { kind: "lived" }), trip(["TW-TPE"])]);
-    expect(stats.get("TW-TPE")).toEqual({ trips: 1, transits: 0, lived: true });
+    expect(stats.get("TW-TPE")).toEqual({ trips: 1, transits: 0, lived: true, footprint: false });
     expect(hasVisited(computeStats([trip(["TW"], { kind: "lived" })]).get("TW"))).toBe(true);
+  });
+
+  it("足跡不計入旅遊次數,但算去過", () => {
+    const stats = computeStats([trip(["TW-TNN"], { kind: "footprint" })]);
+    expect(stats.get("TW-TNN")).toEqual({ trips: 0, transits: 0, lived: false, footprint: true });
+    expect(hasVisited(stats.get("TW"))).toBe(true);
+    expect(statLabel(stats.get("TW-TNN"))).toBe("去過");
+    expect(statColor(stats.get("TW-TNN"))).toBe(LEGEND[3].colors[0]);
+  });
+});
+
+describe("firstVisits", () => {
+  it("每個地點與所屬國家最早的日期;路過與沒填日期的不算", () => {
+    const first = firstVisits([
+      trip(["TW-TNN"], { kind: "footprint", start_date: "2025-07-12" }),
+      trip(["TW-TPE", "TW-TNN"], { start_date: "2024-01-01" }),
+      trip([["CZ", "transit"]], { start_date: "2020-01-01" }),
+      trip(["JP-13"]),
+    ]);
+    expect(Object.fromEntries(first)).toEqual({ "TW-TPE": "2024-01-01", "TW-TNN": "2024-01-01", TW: "2024-01-01" });
   });
 });
 
 describe("statColor", () => {
-  const trips = (n: number, lived = false) => statColor({ trips: n, transits: 0, lived });
+  const trips = (n: number, lived = false) => statColor({ trips: n, transits: 0, lived, footprint: false });
   const [livedLegend, four, twoThree, one, transit] = LEGEND;
 
   it("旅遊依次數分級", () => {
@@ -78,7 +99,7 @@ describe("statColor", () => {
   });
 
   it("只有路過用最暗色;沒去過沒有顏色", () => {
-    expect(statColor({ trips: 0, transits: 2, lived: false })).toBe(transit.colors[0]);
+    expect(statColor({ trips: 0, transits: 2, lived: false, footprint: false })).toBe(transit.colors[0]);
     expect(statColor(undefined)).toBeUndefined();
   });
 });
@@ -86,8 +107,8 @@ describe("statColor", () => {
 describe("statLabel", () => {
   it("組合各種狀態", () => {
     expect(statLabel(undefined)).toBe("還沒去過");
-    expect(statLabel({ trips: 3, transits: 1, lived: true })).toBe("生活過・去過 3 次・路過 1 次");
-    expect(statLabel({ trips: 0, transits: 1, lived: false })).toBe("路過 1 次");
+    expect(statLabel({ trips: 3, transits: 1, lived: true, footprint: false })).toBe("生活過・去過 3 次・路過 1 次");
+    expect(statLabel({ trips: 0, transits: 1, lived: false, footprint: false })).toBe("路過 1 次");
   });
 });
 

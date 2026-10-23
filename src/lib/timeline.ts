@@ -92,21 +92,29 @@ export type Located = Visit & { country: string; key: string }; // key:有分區
 
 export type Draft = { start: string; end: string; places: TripPlace[] };
 
-export function homeCountry(visits: Located[]): string | undefined {
-  const count = (list: Located[]) => {
-    const tally = new Map<string, number>();
-    for (const v of list) tally.set(v.country, (tally.get(v.country) ?? 0) + 1);
-    return [...tally.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
-  };
-  return count(visits.filter((v) => v.home)) ?? count(visits);
+function mostCommon(list: string[]): string | undefined {
+  const tally = new Map<string, number>();
+  for (const item of list) tally.set(item, (tally.get(item) ?? 0) + 1);
+  return [...tally.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
 }
 
-// 連續待在國外的停留點合成一趟,回到住家所在國家才結束;國外中間沒紀錄的日子不切開
-export function groupTrips(visits: Located[], home: string): Draft[] {
+export function homeCountry(visits: Located[]): string | undefined {
+  return mostCommon(visits.filter((v) => v.home).map((v) => v.country)) ?? mostCommon(visits.map((v) => v.country));
+}
+
+// 住家所在的行政區(國家沒有分區地圖時就是國家本身)
+export function homeKey(visits: Located[], country: string): string | undefined {
+  const local = visits.filter((v) => v.country === country);
+  return mostCommon(local.filter((v) => v.home).map((v) => v.key)) ?? mostCommon(local.map((v) => v.key));
+}
+
+// 連續離家(away 為真)的停留點合成一趟,回到家才結束;中間沒紀錄的日子不切開
+// 出國:away = 不在住家國家;國內:away = 在住家國家但不在住家行政區
+export function groupTrips(visits: Located[], away: (v: Located) => boolean): Draft[] {
   const drafts: Draft[] = [];
   let current: Draft | null = null;
   for (const v of visits) {
-    if (v.country === home) {
+    if (!away(v)) {
       current = null;
       continue;
     }
@@ -118,6 +126,14 @@ export function groupTrips(visits: Located[], home: string): Draft[] {
     if (!current.places.some((p) => p.key === v.key)) current.places.push({ key: v.key, transit: false });
   }
   return drafts;
+}
+
+// 時間軸去過、但所有紀錄裡都還沒有的地點,附第一次去的日期
+export function unrecordedPlaces(visits: Located[], trips: Trip[]): { key: string; date: string }[] {
+  const recorded = trips.flatMap((t) => t.places);
+  const found = new Map<string, string>();
+  for (const v of visits) if (!found.has(v.key) && !covers(recorded, v.key)) found.set(v.key, v.date);
+  return [...found].map(([key, date]) => ({ key, date }));
 }
 
 // ---- 和已記錄的旅程比對 ----

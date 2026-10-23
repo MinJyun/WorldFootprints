@@ -20,10 +20,12 @@ import {
 import {
   groupTrips,
   homeCountry,
+  homeKey,
   locate,
   parseTimeline,
   planImport,
   toAreas,
+  unrecordedPlaces,
   type ImportPlan,
   type Located,
 } from "@/lib/timeline";
@@ -55,12 +57,24 @@ async function locateAll(visits: ReturnType<typeof parseTimeline>): Promise<Loca
 }
 
 type Item = { plan: ImportPlan; checked: boolean; title: string; places: TripPlace[] };
+type NewPlace = { key: string; date: string; checked: boolean };
+
+const toItems = (plans: ImportPlan[], checked: boolean): Item[] =>
+  plans.map((plan) => ({
+    plan,
+    checked: checked && plan.action !== "covered",
+    title: "",
+    places: plan.action === "merge" ? plan.added : plan.draft.places,
+  }));
 
 // 讀時間軸檔、產生草稿、勾選後寫入;trips 為使用者已記錄的旅程
 export function TimelineImport({ userId, trips, home }: { userId: string; trips: Trip[]; home: string | null }) {
   const router = useRouter();
   const [homeCountryCode, setHomeCountryCode] = useState<string>();
+  const [homeArea, setHomeArea] = useState<string>();
   const [items, setItems] = useState<Item[] | null>(null);
+  const [domestic, setDomestic] = useState<Item[]>([]);
+  const [newPlaces, setNewPlaces] = useState<NewPlace[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -74,14 +88,17 @@ export function TimelineImport({ userId, trips, home }: { userId: string; trips:
       const homeCode = homeCountry(located);
       if (!homeCode) throw new Error("檔案裡沒有停留點紀錄");
       setHomeCountryCode(homeCode);
-      setItems(
-        planImport(groupTrips(located, homeCode), trips).map((plan) => ({
-          plan,
-          checked: plan.action !== "covered",
-          title: "",
-          places: plan.action === "merge" ? plan.added : plan.draft.places,
-        })),
+      setItems(toItems(planImport(groupTrips(located, (v) => v.country !== homeCode), trips), true));
+
+      // 國內:有分區地圖的國家才分得出離家;旅行只和全在國內的旅程比對,避免把去機場併進出國的那趟
+      const local = located.filter((v) => v.country === homeCode);
+      const area = homeKey(located, homeCode);
+      setHomeArea(area);
+      const localTrips = trips.filter((t) => t.places.every((p) => splitPlaceKey(p.key)[0] === homeCode));
+      setDomestic(
+        DRILLDOWN_MAPS[homeCode] ? toItems(planImport(groupTrips(local, (v) => v.key !== area), localTrips), false) : [],
       );
+      setNewPlaces(unrecordedPlaces(local, trips).map((p) => ({ ...p, checked: true })));
     } catch (e) {
       setError(e instanceof SyntaxError ? "這不是 JSON 檔" : ((e as { message?: string }).message ?? String(e)));
     } finally {
@@ -91,6 +108,13 @@ export function TimelineImport({ userId, trips, home }: { userId: string; trips:
 
   const update = (i: number, change: Partial<Item>) =>
     setItems((prev) => prev!.map((item, j) => (j === i ? { ...item, ...change } : item)));
+  const updateDomestic = (i: number, change: Partial<Item>) =>
+    setDomestic((prev) => prev.map((item, j) => (j === i ? { ...item, ...change } : item)));
+
+  const selected = [...(items ?? []), ...domestic].filter((it) => it.checked && it.plan.action !== "covered");
+  // 已經在勾選的國內旅行裡的地點,不用再另存足跡
+  const inSelected = new Set(selected.flatMap((it) => it.places.map((p) => p.key)));
+  const footprints = newPlaces.filter((p) => p.checked && !inSelected.has(p.key));
 
   async function save() {
     if (!items) return;
@@ -100,7 +124,7 @@ export function TimelineImport({ userId, trips, home }: { userId: string; trips:
     try {
       let created = 0;
       let merged = 0;
-      for (const item of items.filter((it) => it.checked && it.plan.action !== "covered")) {
+      for (const item of selected) {
         const { plan } = item;
         let tripId: string;
         let offset = 0;
@@ -133,7 +157,25 @@ export function TimelineImport({ userId, trips, home }: { userId: string; trips:
         );
         if (error) throw error;
       }
-      toast([created && `新增 ${created} 趟`, merged && `補充 ${merged} 趟`].filter(Boolean).join("、") || "沒有要匯入的旅程");
+      // 只是去過、不算旅行的地點存成足跡:一筆一個地點,日期是第一次去的那天
+      for (const { key, date } of footprints) {
+        const { data, error } = await supabase
+          .from("trips")
+          .insert({ user_id: userId, kind: "footprint", start_date: date })
+          .select("id")
+          .single<{ id: string }>();
+        if (error) throw error;
+        const [country_code, region_code] = splitPlaceKey(key);
+        const placed = await supabase
+          .from("trip_places")
+          .insert({ trip_id: data.id, user_id: userId, country_code, region_code, transit: false, position: 0 });
+        if (placed.error) throw placed.error;
+      }
+      toast(
+        [created && `新增 ${created} 趟`, merged && `補充 ${merged} 趟`, footprints.length && `加入 ${footprints.length} 個足跡`]
+          .filter(Boolean)
+          .join("、") || "沒有要匯入的內容",
+      );
       if (home) router.push(home);
     } catch (e) {
       setError((e as { message?: string }).message ?? String(e));
@@ -142,13 +184,13 @@ export function TimelineImport({ userId, trips, home }: { userId: string; trips:
     }
   }
 
-  const count = items?.filter((it) => it.checked && it.plan.action !== "covered").length ?? 0;
+  const count = selected.length + footprints.length;
 
   return (
     <div className="mx-auto max-w-xl space-y-6 py-6 text-sm">
       <div>
         <h1 className="text-2xl font-bold">從 Google 地圖時間軸匯入</h1>
-        <p className="mt-1 text-muted">找出你出國的日子，整理成旅程草稿；勾選確認後才會存。檔案只在你的瀏覽器裡讀取，不會上傳。</p>
+        <p className="mt-1 text-muted">找出你出國和在國內去過的地方，整理成旅程草稿；勾選確認後才會存。檔案只在你的瀏覽器裡讀取，不會上傳。</p>
       </div>
 
       <details className="rounded-lg border border-border px-3 py-2 text-muted">
@@ -178,7 +220,7 @@ export function TimelineImport({ userId, trips, home }: { userId: string; trips:
       {items && (
         <section className="space-y-3">
           <p className="text-muted">
-            住家所在：{countryName(homeCountryCode!)}（依時間軸判斷）；找到 {items.length} 趟出國
+            住家所在：{homeArea ? placeName(homeArea) : countryName(homeCountryCode!)}（依時間軸判斷）；找到 {items.length} 趟出國
           </p>
           {items.length === 0 && <p className="text-muted">這段期間沒有出國紀錄</p>}
           <ul className="space-y-2">
@@ -186,13 +228,54 @@ export function TimelineImport({ userId, trips, home }: { userId: string; trips:
               <DraftRow key={item.plan.draft.start} item={item} onChange={(change) => update(i, change)} />
             ))}
           </ul>
-          {items.length > 0 && (
+        </section>
+      )}
+
+      {items && newPlaces.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="font-semibold">國內去過、地圖上還沒有的地方</h2>
+          <p className="text-muted">勾選的地方會存成「足跡」：不算哪一趟旅行，記下第一次去的日期，出現在地圖和「足跡」分頁。</p>
+          <ul className="flex flex-wrap gap-1.5">
+            {newPlaces.map((p, i) => (
+              <li key={p.key}>
+                <label className={`flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-0.5 ${p.checked ? "bg-border" : "border border-border text-muted"}`}>
+                  <input
+                    type="checkbox"
+                    checked={p.checked}
+                    onChange={(e) => setNewPlaces((prev) => prev.map((q, j) => (j === i ? { ...q, checked: e.target.checked } : q)))}
+                  />
+                  {placeName(p.key)}
+                  <span className="text-xs text-muted">{p.date}</span>
+                </label>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {items && domestic.length > 0 && (
+        <details className="space-y-2">
+          <summary className="cursor-pointer font-semibold">
+            國內旅行 {domestic.length} 趟
+            <span className="ml-2 font-normal text-muted">預設不勾，算是旅行的再勾</span>
+          </summary>
+          <ul className="mt-2 space-y-2">
+            {domestic.map((item, i) => (
+              <DraftRow key={item.plan.draft.start} item={item} onChange={(change) => updateDomestic(i, change)} />
+            ))}
+          </ul>
+        </details>
+      )}
+
+      {items && (
+        <section>
+          {count > 0 && (
             <button
               onClick={save}
               disabled={busy || count === 0}
               className="w-full rounded-lg bg-accent px-4 py-2 font-medium text-black disabled:opacity-50"
             >
-              {busy ? "匯入中…" : `匯入勾選的 ${count} 趟`}
+              {busy ? "匯入中…" : `匯入勾選的 ${count} 筆`}
             </button>
           )}
         </section>

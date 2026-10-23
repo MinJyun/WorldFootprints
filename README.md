@@ -14,7 +14,9 @@
 
 **景點與美食**:旅程存檔後可以搜尋並加入去過的景點、餐廳、住宿,各自評分與寫一句心得。景點從 OpenStreetMap(Nominatim)搜尋,存進共用景點庫,同一個地點大家共用一筆;景點所在的縣市或府會自動加進旅程的地點。
 
-**從 Google 地圖時間軸匯入**(`/import`):讀手機匯出的 Timeline.json(iPhone、Android 兩種格式),把連續待在國外的日子整理成旅程草稿,和已記錄的旅程日期重疊的會把缺的地點補進去。檔案只在瀏覽器裡解析,不上傳。目前只抓出國,不抓國內旅行。
+**從 Google 地圖時間軸匯入**(`/import`):讀手機匯出的 Timeline.json(iPhone、Android 兩種格式),把連續待在國外的日子整理成旅程草稿,和已記錄的旅程日期重疊的會把缺的地點補進去。檔案只在瀏覽器裡解析,不上傳。國內則以住家縣市為準:離家的日子列成國內旅行(預設不勾,算旅行的再勾);還沒記錄過的縣市可存成「足跡」。
+
+**足跡**:只是去過、不算哪一趟旅行的地點(`kind = footprint`,一筆一個地點,日期為第一次去的那天)。不出現在旅程清單、不計入旅遊次數類成就,但地圖會亮、算去過。首頁右側「足跡」分頁依地點列出去過的國家與行政區、第一次去的日期。
 
 **成就**:依旅程自動計算(同一國去幾次、去過幾國、各洲、地區制霸等),定義在 `src/lib/achievements.ts`,不另外存資料表。
 
@@ -59,6 +61,7 @@ npm test
 - `src/components/TripPanel.tsx` 旅程清單、地點、旅程內容與編輯(日期、地點、筆記、照片)
 - `src/components/SpotPanel.tsx`、`src/lib/spots.ts` 景點搜尋、加入與顯示
 - `src/components/TimelineImport.tsx`、`src/lib/timeline.ts` 時間軸匯入
+- `src/components/FootprintList.tsx` 足跡分頁
 - `src/lib/maps.ts` 地圖投影設定;要新增其他國家的下鑽地圖從這裡加
 - `public/geo/` 地圖資料:world-atlas 50m 與 110m(地球儀轉動時用)、us-atlas states-10m、[dataofjapan/land](https://github.com/dataofjapan/land)(已用 mapshaper 簡化)
   - 台灣 22 縣市:[taiwan-atlas](https://github.com/dkaoster/taiwan-atlas)(內政部資料)

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { GeoMap } from "./GeoMap";
 import { Card, PlaceDetail, TripDetail, TripEditor, TripList, type TripOrder } from "./TripPanel";
 import { AchievementList } from "./AchievementList";
+import { FootprintList } from "./FootprintList";
 import type { FriendTrip } from "./UserFootprints";
 import { getBrowserClient } from "@/lib/supabase";
 import { DRILLDOWN_MAPS, GLOBE_MAP, WORLD_MAP } from "@/lib/maps";
@@ -27,6 +28,7 @@ import {
 
 type Panel =
   | { mode: "list" }
+  | { mode: "footprints" }
   | { mode: "achievements" }
   | { mode: "place"; key: string }
   | { mode: "trip"; id: string }
@@ -90,7 +92,8 @@ export function FootprintsView({ profile, trips: initialTrips, photos: initialPh
     [view, editing],
   );
 
-  const ordered = useMemo(() => sortTrips(trips, newestFirst), [trips, newestFirst]);
+  // 足跡只是去過的地點,不列在旅程裡
+  const ordered = useMemo(() => sortTrips(trips, newestFirst).filter((t) => t.kind !== "footprint"), [trips, newestFirst]);
   const order = { newestFirst, onToggle: () => setNewestFirst((v) => !v) };
 
   const isAt = (key: string) => (t: Trip) =>
@@ -98,7 +101,7 @@ export function FootprintsView({ profile, trips: initialTrips, photos: initialPh
   const tripsAt = (key: string) => ordered.filter(isAt(key));
   const friendTripsAt = (key: string) => {
     const at = isAt(key);
-    return sortTrips(friendTrips.map((f) => f.trip).filter(at), newestFirst).map(
+    return sortTrips(friendTrips.map((f) => f.trip).filter((t) => t.kind !== "footprint" && at(t)), newestFirst).map(
       (trip) => friendTrips.find((f) => f.trip === trip)!,
     );
   };
@@ -122,7 +125,7 @@ export function FootprintsView({ profile, trips: initialTrips, photos: initialPh
             if (!count) return null;
             return <Stat key={country} label={`${countryName(country)}${unit}`} value={`${count} / ${total}`} />;
           })}
-          <Stat label="旅程" value={trips.length} />
+          <Stat label="旅程" value={ordered.length} />
           <Stat label="成就" value={achievements.filter((a) => a.unlocked).length} />
         </dl>
       </div>
@@ -183,15 +186,15 @@ export function FootprintsView({ profile, trips: initialTrips, photos: initialPh
         </div>
 
         <div className="space-y-2">
-          {(panel.mode === "list" || panel.mode === "achievements") && (
+          {(panel.mode === "list" || panel.mode === "footprints" || panel.mode === "achievements") && (
             <div className="flex overflow-hidden rounded-lg border border-border text-sm">
-              {(["list", "achievements"] as const).map((mode) => (
+              {(["list", "footprints", "achievements"] as const).map((mode) => (
                 <button
                   key={mode}
                   onClick={() => setPanel({ mode })}
                   className={`flex-1 py-1.5 ${panel.mode === mode ? "bg-border text-foreground" : "text-muted hover:text-foreground"}`}
                 >
-                  {mode === "list" ? "旅程" : "成就"}
+                  {{ list: "旅程", footprints: "足跡", achievements: "成就" }[mode]}
                 </button>
               ))}
             </div>
@@ -201,6 +204,13 @@ export function FootprintsView({ profile, trips: initialTrips, photos: initialPh
             achievements={achievements}
             setPanel={setPanel}
             trips={ordered}
+            allTrips={trips}
+            onPick={(key) => {
+              const [country, region] = splitPlaceKey(key);
+              setView(region ? country : key in DRILLDOWN_MAPS ? key : "world");
+              setPanel({ mode: "place", key });
+            }}
+            onFootprintsDeleted={(ids) => setTrips((prev) => prev.filter((t) => !ids.includes(t.id)))}
             order={order}
             photos={photos}
             tripsAt={tripsAt}
@@ -229,6 +239,9 @@ function PanelView({
   setPanel,
   achievements,
   trips,
+  allTrips,
+  onPick,
+  onFootprintsDeleted,
   order,
   photos,
   tripsAt,
@@ -244,6 +257,9 @@ function PanelView({
   setPanel: (panel: Panel) => void;
   achievements: ReturnType<typeof computeAchievements>;
   trips: Trip[];
+  allTrips: Trip[];
+  onPick: (key: string) => void;
+  onFootprintsDeleted: (ids: string[]) => void;
   order: TripOrder;
   photos: Photo[];
   tripsAt: (key: string) => Trip[];
@@ -262,6 +278,12 @@ function PanelView({
     case "list":
       return (
         <TripList trips={trips} order={order} onOpen={open} onNew={ownerId ? () => setPanel({ mode: "edit", places: [] }) : undefined} />
+      );
+    case "footprints":
+      return (
+        <Card>
+          <FootprintList trips={allTrips} stats={stats} onPick={onPick} onDelete={ownerId ? onFootprintsDeleted : undefined} />
+        </Card>
       );
     case "achievements":
       return (

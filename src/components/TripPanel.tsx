@@ -26,7 +26,7 @@ import { DateRangeField } from "./DateRangeField";
 import { SpotEditor, SpotList } from "./SpotPanel";
 import { spotsAt } from "@/lib/spots";
 
-const KIND_LABEL = Object.fromEntries(TRIP_KINDS.map((k) => [k.value, k.label])) as Record<TripKind, string>;
+const KIND_LABEL = { ...Object.fromEntries(TRIP_KINDS.map((k) => [k.value, k.label])), footprint: "足跡" } as Record<TripKind, string>;
 
 export function Card({ children }: { children: React.ReactNode }) {
   return <aside className="space-y-4 rounded-xl border border-border bg-panel p-4 text-sm">{children}</aside>;
